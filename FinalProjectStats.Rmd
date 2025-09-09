@@ -1,0 +1,233 @@
+---
+title: "Final Project"
+output: html_document
+date: '2022-11-30'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(kableExtra)
+library(ISLR)
+install.packages('fitdistrplus')
+library(fitdistrplus)
+```
+
+## R Markdown
+
+Read the data file 
+```{r}
+
+data <- read.csv("D:/Fall 2022 Term 2/DS 803/Project/Bike Share Data/hour.csv")
+```
+
+Split the data in to 50%
+```{r}
+
+smp_size <- floor(0.5 * nrow(data))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(data)), size = smp_size)
+
+train <- data[train_ind, ]
+test = data[-train_ind, ]
+
+nrow(data)
+nrow(train)
+nrow(test)
+
+```
+Make Charts and Graphs for Data Exploration 
+
+```{r}
+#make tibble and convert appropriate columns to factor 
+train_tbl<-as_tibble(train)
+train_tbl<-train_tbl %>% mutate(season=as.factor(season),yr=as.factor(yr),weekday=as.factor(weekday),holiday=as.factor(holiday),workingday=as.factor(workingday),weathersit=as.factor(weathersit))
+
+train
+glimpse(train_tbl)
+```
+
+Find Values for windspeed, atemp and cnt of bikes. 
+cnt
+```{r}
+train_tbl %>% 
+  select(cnt,windspeed, atemp) %>%
+  summarize(Average_Count_Of_Bikes=mean(cnt),Average_Windspeed=mean(windspeed),Average_Feeling_temp=mean(atemp))
+```
+```{r}
+train_tbl %>% 
+  select(cnt,windspeed, atemp) %>%
+  summarize(SD_Count_Of_Bikes=sqrt(var(cnt)),SD_Windspeed=sqrt(var(windspeed)),SD_Feeling_temp=sqrt(var(atemp)))
+```
+
+
+Looking at the count of bikes by the hour: 
+Average count of bikes by the hour 
+```{r}
+train_tbl %>% 
+  select(cnt, hr) %>%
+  group_by(hr) %>% 
+  summarize(Avg_cnt_by_hour=mean(cnt))
+```
+As a chart 
+```{r}
+train_tbl %>% 
+  select(cnt, hr) %>%
+  group_by(hr) %>% 
+  summarize(Avg_cnt_by_hour=mean(cnt))%>% 
+  ggplot(aes(x=hr,y=Avg_cnt_by_hour))+
+  geom_line()
+
+```
+
+Histogram for the cnt
+```{r}
+train_tbl%>% 
+  ggplot(aes(x=cnt))+
+  geom_density()+xlab("# of bikes used in an hour")
+```
+
+Make a dataset for the daytime
+```{r}
+rushhour<-train_tbl %>% filter(hr %in% c(8,17,18))
+daydata<-train_tbl %>% filter(hr %in% c(8,9,10,11,12,13,14,15,16,17,18,19,20,21,22))
+```
+
+histogram for the daytime count of bikes
+```{r}
+daydata %>% 
+  ggplot(aes(x=cnt))+
+  geom_density()+xlab("# of bikes used in an hour (during the day)")
+```
+
+Average count of bikes in the daydata 
+```{r}
+daydata %>% 
+  select(cnt,windspeed, atemp) %>%
+  summarize(Average_Count_Of_Bikes=mean(cnt),Average_Windspeed=mean(windspeed),Average_Feeling_temp=mean(atemp))
+```
+
+
+```{r}
+
+Normt.CI=function(x, alpha){
+  n=length(x)
+  df=n-1
+  ME=qt(1-alpha/2, df)*sd(x)/sqrt(n)
+  c(mean(x)-ME, mean(x)+ME)
+}
+
+Normt.CI(daydata$cnt, 0.05)
+Normt.CI(train_tbl$cnt, 0.05)
+Normt.CI(rushhour$cnt, 0.05)
+```
+
+
+atemp vs cnt scatterplot in daydata
+```{r}
+daydata %>% 
+  ggplot(aes(x=atemp, y=cnt))+
+  geom_point()+
+  geom_smooth()
+
+
+```
+
+
+windspeed vs cnt  scatterplot in daydata
+```{r}
+
+daydata %>% 
+  ggplot(aes(x=windspeed, y=cnt))+
+  geom_point()+
+  geom_smooth()
+```
+histogram for windspeed daytime 
+```{r}
+daydata %>% 
+  ggplot(aes(x=windspeed))+
+  geom_histogram()
+```
+
+
+histogram for atemp
+```{r}
+daydata %>% 
+  ggplot(aes(x=atemp))+
+  geom_histogram()
+```
+
+
+
+
+
+
+#Taking out all the WGTP columns. They are unnecessary. 
+```{r}
+data_tbl<-data_tbl %>% 
+  select(-starts_with("WGTP"))
+
+glimpse(data_tbl)
+summary(lm(cnt~atemp+factor(weekday)+factor(season)+factor(holiday)+hr+windspeed, data=data))
+
+
+(data)
+
+fit<- fitdist(daydata$cnt, distr = "gamma",method = "mle")
+summary(fit)
+
+gggg<-rgamma(length(daydata$cnt), 2.27, 0.008556)
+hist(gggg)
+
+
+
+```
+
+
+
+
+
+```{r}
+data_tbl %>% 
+  group_by(BATH) %>%
+  tally() %>%
+  mutate(pct = 100 * n / sum(n))
+data
+plot(data)
+
+```
+
+
+```{r}
+test<-rnorm(1000,263,176)
+
+hist(test)
+fun <- rnorm(1000, mean = mean(263), sd = 173)
+length(fun)
+lines(seq(min(test),max(test)),  col = 'blue', lwd = 2)
+mean(test)
+
+x2 <- seq(min(test), max(test), length = length(test))
+hist(test, prob = TRUE, col = "white",)
+lines(x2, fun, col = 'blue', lwd = 2)
+
+set.seed(123)
+data=rgamma(length(daydata$cnt), 2.27, 0.008556)
+test.stat=(mean(data)-mean(daydata$cnt))/(sd(daydata$cnt)/sqrt(length(daydata$cnt)))
+test.stat
+
+t.test(daydata$cnt, mu = 0)
+
+
+#MOM using Gamma distribution
+(mean(daydata$cnt)/sd(daydata$cnt))^2
+sd(daydata$cnt)^2/mean(daydata$cnt)
+sqrt(var(daydata$cnt))
+
+
+```
+
+
